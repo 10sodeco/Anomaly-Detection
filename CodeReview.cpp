@@ -1,63 +1,109 @@
-void makeHisto(Mat subImage)
+std::vector<Mat> manipulateImage(Mat image1)
 {
-    int numOfBins = 256; // Establish number of bins (num. different values on horizontal axis of our histogram) 256 because B,G,R values range from 0 to 256
-    float range[] = {0, 256}; // Set ranges. Again range from 0, 256 because we are using RGB
-    const float* histRange = {range};
-    bool uniform = true; // We want our bins to be equal so we set the uniform value to true
-    bool accumulate = false; // We want a new histogram everytime we run the operation so we do not accumulate previous results
-    Mat blue_histo, green_histo, red_histo; // Declare the 3 image containers for our seperate color values
+    stringstream ss;
     
-    // Now we will use the built in split function to split the image into 3 planes (R,G,B)
+    string type = ".jpg";
     
-    vector<Mat> bgr_planes;
-    split(subImage, bgr_planes);
+    Mat gray_image; // create an Mat where we will save the gray version of this image
+    cvtColor(image1, gray_image, CV_BGR2GRAY); // convert the original image to gray scale
     
-    // Create the histograms using OpenCV function calcHist
-    // calcHist(const Mat* images, int nimages, const int* channels, InputArray mask, OutputArray hist, int dims, const int* numOfBins, const float** ranges, bool uniform, bool accumulate)
+    int height = gray_image.rows; // get the height of the image
+    int width = gray_image.cols; // get the weight of the image
     
-    calcHist(&bgr_planes[0], 1, 0, Mat(), blue_histo, 1, &numOfBins, &histRange, uniform, accumulate);
-    calcHist(&bgr_planes[1], 1, 0, Mat (), green_histo, 1, &numOfBins, &histRange, uniform, accumulate);
-    calcHist(&bgr_planes[2], 1, 0, Mat (), red_histo, 1, &numOfBins, &histRange, uniform, accumulate);
-   
-    // Set up the dimensions of the histogram that will be created
-    int histoWidth = 512; // setting the width for the histogram
-    int histHeight = 400; // setting the height
-    int binWidth = cvRound((double) histWidth/numOfBins); // finds the size for each bin
+    printf("We are processing a %dx%d image. \n", height, width); // print out the size
     
-    // Create the window for the histogram using dimensions we established
-    Mat histImage(histoHeight, histoWidth, CV_8UC3, Scalar(0, 0, 0)); // CV_8UC3: U = Unsigned integer image with 3 channels
+    int smallHeight = height/5;
+    int smallWidth = width/5;
     
-    // Normalize the histograms
-    normalize(blue_histo, blue_histo, 0, histImage.rows, NORM_MINMAX, -1, Mat());
-    normalize(green_histo, green_histo, 0, histImage.rows, NORM_MINMAX, -1, Mat());
-    normalize(red_histo, red_histo, 0, histImage.rows, NORM_MINMAX, -1, Mat());
+    imwrite("../Desktop/OpenCVTest/Gray_Image.jpg", gray_image); // save the grayscale image to our folder
     
-    // Draw for each channel (RGB)
-    for(int i = 1; i < numOfBins; i++)
+    //    makeHisto(gray_image);
+    cv:: Size smallSize(smallWidth, smallHeight); //creating a image 1/10 the size of the larger image
+    std::vector<Mat> smallImages; // create a vector to store the small images
+    std::vector<Mat> histograms;
+    Mat tempHisto;
+    
+    printf("We will be creating images of size %dx%d \n", smallSize.height, smallSize.width);
+    
+    
+    // Create a process that will run through the image and break it down into 30 x 30 sub images
+    int count = 0; // to keep count of images
+    for (int y = 0; y < height; y += smallSize.height)
     {
-     // Draw the blue line on the histogram
-     line(histImage, Point(binWidth*(i-1), histoHeight - cvRound(blue_histo.at<float>(i-1))),
-                     Point( binWidth*(i), histoHeight - cvRound(blue_histo.at<float>(i)) ),
-                     Scalar ( 255, 0, 0), 2, 8, 0);
-     
-     // Draw the green line on the histogram
-     line(histImage, Point(binWidth*(i-1), histoHeight - cvRound(green_histo.at<float>(i-1))),
-             Point( binWidth*(i), histoHeight - cvRound(green_histo.at<float>(i)) ),
-             Scalar ( 0, 255, 0), 2, 8, 0);
-      
-     // Draw the red line on the histogram
-     line(histImage, Point(binWidth*(i-1), histoHeight - cvRound(red_histo.at<float>(i-1))),
-             Point( binWidth*(i), histoHeight - cvRound(red_histo.at<float>(i)) ),
-             Scalar ( 0, 0, 255), 2, 8, 0);
+        for (int x = 0; x < width; x += smallSize.width)
+        {
+            cv::Rect rect = cv::Rect(x, y, smallSize.width, smallSize.height);
+            smallImages.push_back(cv::Mat(gray_image, rect));
+            string name = format("../Desktop/OpenCVTest/SmallImages/smallImage_"); // create the text of the file name, will add counter at the end to identify which image we are looking at
+            ss << name << (count+1) << type; // concat the string together to create our file name
+            string filename = ss.str();
+            ss.str("");
+            imwrite(filename, cv::Mat(gray_image, rect)); // write the image to the small image folder
+            
+            tempHisto = makeHisto(cv::Mat(gray_image, rect)); // create the histogram and then save it
+            
+            histograms.push_back(tempHisto); // save the histogram to our histogram array so we can use it to compare with other histograms
+            
+            // Code to print off small images to compare
+            
+            //            namedWindow("SmallImages", CV_WINDOW_AUTOSIZE);
+            //            imshow("SmallImages", cv::Mat(gray_image, rect));
+            //            waitKey(0);
+            //            destroyWindow("SmallImages"); // destroy the window we created for the small images
+        }
     }
     
-    // Display the histogram that was created
-    namedWindow("calcHist Demo", CV_WINDOW_AUTOSIZE); // Creates the window to display this
-    imshow("calcHist Demo", histImage); // calls the window
+    return(histograms);
+}
+
+Mat makeHisto(Mat sampleImage)
+{
+    // Establish number of bins (num. different values on horizontal axis of our histogram)
     
-    waitKey(0); // waits until the user hits a key
+    int histSize = 256; // 256 because grayscale intensity values range from 0 to 255
     
-    destroyWindow("calcHist Demo"); // destroy the window we created for the histogram
+    // Set ranges. Again range from 0, 255 because we are using RGB
+    float range[] = {0, 256};
+    const float* histRange = {range};
     
-    return 0;
+    // We want our bins to be equal so we set the uniform value to true
+    bool uniform = true;
+    
+    // We want a new histogram everytime we run the operation so we do not accumulate previous results
+    bool accumulate = false;
+    
+    Mat gray_hist;
+    
+    // Create the histogram using OpenCV function calcHist
+    
+    // calcHist(const Mat* images, int nimages, const int* channels, InputArray mask, OutputArray hist, int dims, const int* histSize, const float** ranges, bool uniform, bool accumulate)
+    
+    calcHist(&sampleImage, 1, 0, Mat(), gray_hist, 1, &histSize, &histRange, uniform, accumulate);
+    
+    // Draw the histogram for the subimage
+    
+    int hist_w = 512;
+    int hist_h = 400;
+    int bin_w = cvRound((double) hist_w/histSize);
+    
+    Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0)); // CV_8UC3: U = Unsigned integer image with 3 channels
+    
+    // Normalize the histogram
+    normalize(gray_hist, gray_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
+    
+    for(int i = 1; i < histSize; i++)
+    {
+        line(histImage, Point(bin_w*(i-1), hist_h - cvRound(gray_hist.at<float>(i-1))),
+             Point( bin_w*(i), hist_h - cvRound(gray_hist.at<float>(i)) ),
+             Scalar ( 255, 255, 255), 2, 8, 0);
+    }
+    
+    namedWindow("calcHisto", CV_WINDOW_AUTOSIZE);
+    imshow("calcHisto", histImage);
+    
+    waitKey(0);
+    
+    destroyWindow("calcHisto");
+    
+    return(gray_hist);
 }
