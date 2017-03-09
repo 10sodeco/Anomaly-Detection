@@ -18,13 +18,13 @@ void makeHisto(Mat subImage)
     calcHist(&bgr_planes[0], 1, 0, Mat(), blue_histo, 1, &numOfBins, &histRange, uniform, accumulate);
     calcHist(&bgr_planes[1], 1, 0, Mat (), green_histo, 1, &numOfBins, &histRange, uniform, accumulate);
     calcHist(&bgr_planes[2], 1, 0, Mat (), red_histo, 1, &numOfBins, &histRange, uniform, accumulate);
-    
-    // Draw the histograms for the three colors
-    
+   
+    // Set up the dimensions of the histogram that will be created
     int histoWidth = 512; // setting the width for the histogram
     int histHeight = 400; // setting the height
     int binWidth = cvRound((double) histWidth/numOfBins); // finds the size for each bin
     
+    // Create the window for the histogram using dimensions we established
     Mat histImage(histoHeight, histoWidth, CV_8UC3, Scalar(0, 0, 0)); // CV_8UC3: U = Unsigned integer image with 3 channels
     
     // Normalize the histograms
