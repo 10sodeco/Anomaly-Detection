@@ -16,20 +16,18 @@ std::vector<Mat> manipulateImage(Mat image1)
     height = gray_image.rows; // get the height of the image
     width = gray_image.cols; // get the weight of the image
     
-    printf("We are processing a %dx%d image. \n", height, width); // print out the size
-    
+    // We will create 25 sub-images, so we want to create a 5x5 grid of sub-images
     smallHeight = height/5;
     smallWidth = width/5;
     
     imwrite("../Desktop/OpenCVTest/Gray_Image.jpg", gray_image); // save the grayscale image to our folder
-
-    // Create a process that will run through the image and break it down into sub images
-    count = 0; // to keep count of images
+    
     
     // Will now run through the image row by row and break it down into smaller images, and then create the histogram for these smaller images
-    for (int y = 0; y < height; y += smallSize.height)
+    count = 0; // to keep count of images
+    for (int y = 0; y < height; y += smallSize.height) // outer loop which runs through our vertical placement in the image
     {
-        for (int x = 0; x < width; x += smallSize.width)
+        for (int x = 0; x < width; x += smallSize.width) // inner loop which runs through the horizontal placement in the image
         {
             cv::Rect rect = cv::Rect(x, y, smallSize.width, smallSize.height); // pulls the rectangle out from the larger image
             smallImages.push_back(cv::Mat(gray_image, rect)); // add this sub image to our vector storing all smaller images 
@@ -46,7 +44,6 @@ std::vector<Mat> manipulateImage(Mat image1)
             histograms.push_back(tempHisto); // save the histogram to our histogram array so we can use it to compare with other histograms
         }
     }
-    
     return(histograms); // returns our vector of histograms to the calling function so we can create our PDF from this data
 }
 
@@ -56,7 +53,7 @@ Mat makeHisto(Mat sampleImage)
     float range[];
     bool uniform, accumulate;
     Mat gray_hist; // creates a container for the histogram we create
-    int hist_width, hist_height, bin_width;
+    int hist_width, hist_height, bin_width, i; // declaring the int values we will need in the code
     
 
     histSize = 256; // 256 because grayscale intensity values range from 0 to 255
@@ -86,7 +83,7 @@ Mat makeHisto(Mat sampleImage)
     normalize(gray_hist, gray_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
     
     // Draw the histogram 
-    for(int i = 1; i < histSize; i++)
+    for(i = 1; i < histSize; i++)
     {
         line(histImage, Point(bin_width*(i-1), hist_height - cvRound(gray_hist.at<float>(i-1))),
              Point( bin_width*(i), hist_height - cvRound(gray_hist.at<float>(i)) ),
